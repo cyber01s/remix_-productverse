@@ -1,0 +1,68 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "A product tracked on the platform.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "brand": { "type": "string" },
+        "slug": { "type": "string" },
+        "price": { "type": "number" },
+        "category": { "type": "string" },
+        "rating": { "type": "number" },
+        "reviewCount": { "type": "number" },
+        "thumbnail": { "type": "string" },
+        "affiliateUrl": { "type": "string" },
+        "isTrending": { "type": "boolean" },
+        "scores": {
+          "type": "object",
+          "properties": {
+            "performance": { "type": "number" },
+            "value": { "type": "number" }
+          }
+        }
+      },
+      "required": ["name", "slug", "price"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "A user review for a product.",
+      "type": "object",
+      "properties": {
+        "productId": { "type": "string" },
+        "userId": { "type": "string" },
+        "rating": { "type": "number" },
+        "body": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["productId", "userId", "rating", "body"]
+    },
+    "Click": {
+      "title": "Click",
+      "description": "An outbound affiliate click log.",
+      "type": "object",
+      "properties": {
+        "productId": { "type": "string" },
+        "userId": { "type": "string" },
+        "source": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Product collection"
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Reviews collection"
+    },
+    "/clicks/{clickId}": {
+      "schema": "Click",
+      "description": "Affiliate clicks log"
+    }
+  }
+}
