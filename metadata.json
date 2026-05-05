@@ -1,6 +1,0 @@
-{
-  "name": "Remix: ProductVerse",
-  "description": "PV.DISCOVER: A high-fidelity architectural search matrix for tech discovery. Features a Firestore-backed persistence layer for optimized Impact API utilization and strategic data lifecycle management.",
-  "requestFramePermissions": [],
-  "majorCapabilities": []
-}
