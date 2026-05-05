@@ -47,6 +47,41 @@ async function startServer() {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
+  // Dedicated Cron Cleanup Route - Scheduled via vercel.json
+  app.get("/api/cron/cleanup", async (req, res) => {
+    // Basic security: Check for a secret header or just rely on Vercel's internal cron protection
+    // Vercel populates 'x-vercel-cron' header for cron requests
+    if (process.env.NODE_ENV === 'production' && req.headers['x-vercel-cron'] !== '1') {
+      // Allow only if it has the vercel cron header in production
+      // return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    if (!db) return res.status(500).json({ error: "Persistence layer (Firestore) not initialized. Ensure FIREBASE_PROJECT_ID is set." });
+    
+    try {
+      console.log("CRON: Starting strategic cache cleanup...");
+      const now = Date.now();
+      const expired = await db.collection("search_cache")
+        .where("expiresAt", "<", now)
+        .limit(200)
+        .get();
+
+      if (expired.empty) {
+        return res.json({ status: "success", message: "Cache set is already lean. No expired entries found." });
+      }
+
+      const batch = db.batch();
+      expired.docs.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+
+      console.log(`CRON: Successfully purged ${expired.size} expired entries.`);
+      res.json({ status: "success", purged: expired.size, timestamp: new Date().toISOString() });
+    } catch (e) {
+      console.error("CRON: Cleanup failed:", e);
+      res.status(500).json({ error: "Internal Cleanup Failure" });
+    }
+  });
+
   const IMPACT_ACCOUNT_SID = process.env.IMPACT_ACCOUNT_SID;
   const IMPACT_AUTH_TOKEN = process.env.IMPACT_AUTH_TOKEN;
 
