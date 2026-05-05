@@ -4,6 +4,7 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Playfair Display", ui-serif, Georgia, serif;
+  --breakpoint-xs: 480px;
   --color-editorial-bg: #FCFAF7;
   --color-editorial-black: #1A1A1A;
   --color-editorial-orange: #E65100;

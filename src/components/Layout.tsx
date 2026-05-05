@@ -75,7 +75,7 @@ export const Header = () => {
             href="https://newfortech.com" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="flex items-center gap-2 bg-editorial-black text-white px-3 md:px-4 py-2 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:bg-editorial-orange transition-all shrink-0"
+            className="flex items-center gap-2 bg-editorial-orange text-white px-3 md:px-4 py-2 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:bg-editorial-black transition-all shrink-0 shadow-lg shadow-editorial-orange/20"
           >
             <span className="hidden xs:inline">Visit</span> NewForTech <ExternalLink size={10} />
           </a>
