@@ -21,6 +21,16 @@ try {
     }
     db = admin.firestore(config.firestoreDatabaseId);
     console.log("Firebase Admin initialized successfully.");
+  } else {
+    // Fallback to environment variables if config file is missing (common on Vercel)
+    if (process.env.FIREBASE_PROJECT_ID) {
+      if (admin.apps.length === 0) {
+        admin.initializeApp({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+        });
+      }
+      db = admin.firestore();
+    }
   }
 } catch (error) {
   console.error("Failed to initialize Firebase Admin:", error);
