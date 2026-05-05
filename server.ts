@@ -139,7 +139,7 @@ async function startServer() {
       const catalogs = catData.Catalogs || [];
       const allItems: any[] = [];
 
-      // 2. Fetch items from catalogs
+      // 2. Fetch items from catalogs in parallel for performance
       let searchTerm = (q as string) || "";
       if (category && category !== 'all') {
         searchTerm = searchTerm ? `${searchTerm} ${category}` : (category as string);
@@ -148,19 +148,22 @@ async function startServer() {
       const searchQuery = searchTerm ? `&SearchTerm=${encodeURIComponent(searchTerm)}` : "";
       const paginationQuery = `&PageSize=${pageSize}&PageItemStart=${pageItemStart}`;
 
-      for (const catalog of catalogs.slice(0, 8)) {
-        try {
-          const itemRes = await fetch(`https://api.impact.com/Mediapartners/${IMPACT_ACCOUNT_SID}/Catalogs/${catalog.Id}/Items?${paginationQuery}${searchQuery}`, fetchOpts);
-          if (itemRes.ok) {
-            const iData = await itemRes.json();
-            if (iData.Items && Array.isArray(iData.Items)) {
-               allItems.push(...iData.Items);
+      const catalogItems = await Promise.all(
+        catalogs.slice(0, 8).map(async (catalog: any) => {
+          try {
+            const itemRes = await fetch(`https://api.impact.com/Mediapartners/${IMPACT_ACCOUNT_SID}/Catalogs/${catalog.Id}/Items?${paginationQuery}${searchQuery}`, fetchOpts);
+            if (itemRes.ok) {
+              const iData = await itemRes.json();
+              return iData.Items || [];
             }
+          } catch (err) {
+            console.warn(`Failed to fetch items for catalog ${catalog.Id}`, err);
           }
-        } catch (err) {
-          console.warn(`Failed to fetch items for catalog ${catalog.Id}`, err);
-        }
-      }
+          return [];
+        })
+      );
+
+      allItems.push(...catalogItems.flat());
 
       const validItems = allItems.filter(item => item.ImageUrl);
 
@@ -204,16 +207,25 @@ async function startServer() {
       const catData = await catResponse.json();
       const catalogs = catData.Catalogs || [];
 
-      for (const catalog of catalogs) {
-        const itemRes = await fetch(`https://api.impact.com/Mediapartners/${IMPACT_ACCOUNT_SID}/Catalogs/${catalog.Id}/Items?SearchTerm=${encodeURIComponent(id)}`, fetchOpts);
-        if (itemRes.ok) {
-          const iData = await itemRes.json();
-          const item = (iData.Items || []).find((p: any) => (p.Id || p.id) === id);
-          if (item) {
-            await setToCache(cacheKey, [item]);
-            return res.json(item);
+      const productResults = await Promise.all(
+        catalogs.map(async (catalog: any) => {
+          try {
+            const itemRes = await fetch(`https://api.impact.com/Mediapartners/${IMPACT_ACCOUNT_SID}/Catalogs/${catalog.Id}/Items?SearchTerm=${encodeURIComponent(id)}`, fetchOpts);
+            if (itemRes.ok) {
+              const iData = await itemRes.json();
+              return (iData.Items || []).find((p: any) => (p.Id || p.id) === id);
+            }
+          } catch (e) {
+            console.warn(`Catalog ${catalog.Id} search error:`, e);
           }
-        }
+          return null;
+        })
+      );
+
+      const item = productResults.find(p => p !== null);
+      if (item) {
+        await setToCache(cacheKey, [item]);
+        return res.json(item);
       }
 
       return res.status(404).json({ error: "Product not found across catalogs" });

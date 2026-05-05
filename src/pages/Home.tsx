@@ -265,9 +265,10 @@ export const Home = () => {
              href="https://newfortech.com" 
              target="_blank" 
              rel="noopener noreferrer"
-             className="hidden sm:flex items-center gap-2 bg-white/10 backdrop-blur-md text-white px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border border-white/10 hover:bg-white hover:text-black transition-all"
+             className="flex items-center gap-1.5 md:gap-2 bg-white/10 backdrop-blur-md text-white px-3 md:px-4 py-2 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-widest border border-white/10 hover:bg-white hover:text-black transition-all shrink-0"
            >
-             newfortech.com
+             <span className="hidden xs:inline">newfortech.com</span>
+             <span className="xs:hidden">NFT</span>
            </a>
            <Link to="/products" className="bg-white/10 backdrop-blur-xl p-2 md:p-3 rounded-full text-white border border-white/10 hover:bg-indigo-600 transition-all">
              <Search size={18} className="md:w-5 md:h-5" />
