@@ -201,6 +201,8 @@ export const Home = () => {
   const { 
     data, 
     isLoading, 
+    isError,
+    error,
     fetchNextPage, 
     hasNextPage, 
     isFetchingNextPage 
@@ -302,7 +304,23 @@ export const Home = () => {
           </div>
         )}
 
-        {!products.length && !isLoading && !isFetchingNextPage && (
+        {isError && (
+          <div className="h-screen w-full flex items-center justify-center text-white text-center p-12 bg-rose-950/20">
+             <div className="max-w-md">
+                <h3 className="text-4xl md:text-5xl font-black italic tracking-tighter mb-4 uppercase text-rose-500">System Error</h3>
+                <p className="text-white/40 uppercase text-[10px] md:text-xs font-black tracking-[0.2em] mb-12 leading-relaxed">
+                  {error instanceof Error && error.message.includes('Impact API credentials') 
+                    ? "Configuration Missing: Please ensure IMPACT_ACCOUNT_SID and IMPACT_AUTH_TOKEN are set in Vercel Environment Variables."
+                    : "The discovery engine encountered a vector mismatch. Please re-synchronize your credentials or try again later."}
+                </p>
+                <Link to="/products" className="inline-block bg-white text-black px-10 py-5 rounded-full font-black text-[10px] uppercase tracking-[0.2em] hover:bg-rose-600 hover:text-white transition-all shadow-2xl">
+                  Manual Catalog Override
+                </Link>
+             </div>
+          </div>
+        )}
+
+        {!products.length && !isLoading && !isFetchingNextPage && !isError && (
           <div className="h-screen w-full flex items-center justify-center text-white text-center p-12">
              <div className="max-w-md">
                 <h3 className="text-4xl md:text-5xl font-black italic tracking-tighter mb-4 uppercase">Feed Exhausted</h3>
