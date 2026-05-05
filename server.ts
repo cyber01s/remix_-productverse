@@ -29,7 +29,7 @@ try {
           projectId: process.env.FIREBASE_PROJECT_ID,
         });
       }
-      db = admin.firestore();
+      db = admin.firestore(process.env.FIREBASE_DATABASE_ID || undefined);
     }
   }
 } catch (error) {
@@ -194,7 +194,7 @@ async function startServer() {
       const paginationQuery = `&PageSize=${pageSize}&PageItemStart=${pageItemStart}`;
 
       const catalogItems = await Promise.all(
-        catalogs.slice(0, 5).map(async (catalog: any) => {
+        catalogs.slice(0, 3).map(async (catalog: any) => {
           try {
             const itemRes = await fetch(`https://api.impact.com/Mediapartners/${IMPACT_ACCOUNT_SID}/Catalogs/${catalog.Id}/Items?${paginationQuery}${searchQuery}`, fetchOpts);
             if (itemRes.ok) {
