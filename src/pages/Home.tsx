@@ -37,14 +37,14 @@ const DiscoverSlide: React.FC<{ product: any; isActive: boolean }> = ({ product,
   };
 
   return (
-    <div className="h-screen w-full snap-start relative flex flex-col items-center justify-center bg-black overflow-hidden select-none">
-      {/* Background/Visual Area */}
-      <div className="absolute inset-0 z-0 flex items-center justify-center bg-gradient-to-br from-gray-900 to-black">
+    <div className="h-screen w-full snap-start relative flex flex-col bg-black overflow-hidden select-none">
+      {/* Visual Area */}
+      <div className="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 to-black p-6 pb-[35vh] md:pb-0">
         <motion.div 
           initial={{ scale: 0.8, opacity: 0 }}
           animate={isActive ? { scale: 1, opacity: 1 } : { scale: 0.8, opacity: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="relative w-full h-[45%] md:h-[60%] flex items-center justify-center p-6 md:p-12 mb-[40vh] md:mb-0"
+          className="relative w-full h-full flex items-center justify-center"
         >
           <img 
             src={product.ImageUrl || product.imageUrl || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800"} 
@@ -52,7 +52,6 @@ const DiscoverSlide: React.FC<{ product: any; isActive: boolean }> = ({ product,
             className="max-h-full max-w-full object-contain filter drop-shadow-[0_20px_50px_rgba(255,255,255,0.1)] transition-transform duration-700 hover:scale-105"
           />
           
-          {/* Animated Accents */}
           <motion.div 
              animate={{ rotate: 360 }}
              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
@@ -62,8 +61,8 @@ const DiscoverSlide: React.FC<{ product: any; isActive: boolean }> = ({ product,
       </div>
 
       {/* Overlay UI */}
-      <div className="absolute inset-0 z-10 flex flex-col justify-end p-6 md:p-12 bg-gradient-to-t from-black via-black/60 to-transparent">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8 items-end w-full max-w-6xl mx-auto mb-8 md:mb-0">
+      <div className="absolute inset-0 z-10 flex flex-col justify-end p-6 md:p-12 bg-gradient-to-t from-black via-black/80 to-transparent pointer-events-none">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-8 items-end w-full max-w-6xl mx-auto mb-6 md:mb-0 pointer-events-auto">
           
           {/* Main Info */}
           <div className="md:col-span-8 flex flex-col gap-2 md:gap-4">
@@ -76,7 +75,7 @@ const DiscoverSlide: React.FC<{ product: any; isActive: boolean }> = ({ product,
               <span className="bg-indigo-600 text-white text-[9px] md:text-[10px] font-black px-2 md:px-3 py-1 rounded-full uppercase tracking-[0.2em] italic flex items-center gap-1.5">
                 <TrendingUp size={10} className="md:w-3 md:h-3" /> Trending Pick
               </span>
-              <span className="text-white/40 text-[9px] md:text-[10px] font-bold uppercase tracking-widest">{product.Manufacturer || 'Official Brand'}</span>
+              <span className="text-white/40 text-[9px] md:text-[10px] font-bold uppercase tracking-widest">{product.Manufacturer || product.Brand || 'Official Asset'}</span>
             </motion.div>
 
             <motion.h2 
@@ -255,18 +254,26 @@ export const Home = () => {
   return (
     <div className="fixed inset-0 z-[60] bg-black">
       {/* HUD Header */}
-      <div className="absolute top-0 left-0 right-0 z-30 p-6 flex justify-between items-start pointer-events-none">
-        <Link to="/" className="pointer-events-auto">
-          <span className="text-2xl font-black tracking-tighter text-white uppercase italic">
-            PV<span className="text-indigo-600">.</span>Discover
+      <div className="absolute top-0 left-0 right-0 z-30 p-4 md:p-6 flex justify-between items-center pointer-events-none">
+        <Link to="/" className="pointer-events-auto flex items-center gap-2">
+          <span className="text-xl md:text-2xl font-black tracking-tighter text-white uppercase italic">
+            PV<span className="text-indigo-600">.</span>DISCOVER
           </span>
         </Link>
-        <div className="flex gap-4 pointer-events-auto">
-           <Link to="/products" className="bg-white/10 backdrop-blur-xl p-3 rounded-full text-white border border-white/10 hover:bg-indigo-600 transition-all">
-             <Search size={20} />
+        <div className="flex gap-2 md:gap-4 pointer-events-auto items-center">
+           <a 
+             href="https://newfortech.com" 
+             target="_blank" 
+             rel="noopener noreferrer"
+             className="hidden sm:flex items-center gap-2 bg-white/10 backdrop-blur-md text-white px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border border-white/10 hover:bg-white hover:text-black transition-all"
+           >
+             newfortech.com
+           </a>
+           <Link to="/products" className="bg-white/10 backdrop-blur-xl p-2 md:p-3 rounded-full text-white border border-white/10 hover:bg-indigo-600 transition-all">
+             <Search size={18} className="md:w-5 md:h-5" />
            </Link>
-           <Link to="/products" className="bg-white/10 backdrop-blur-xl p-3 rounded-full text-white border border-white/10 hover:bg-indigo-600 transition-all">
-             <LayoutGrid size={20} />
+           <Link to="/products" className="bg-white/10 backdrop-blur-xl p-2 md:p-3 rounded-full text-white border border-white/10 hover:bg-indigo-600 transition-all">
+             <LayoutGrid size={18} className="md:w-5 md:h-5" />
            </Link>
         </div>
       </div>
@@ -294,12 +301,16 @@ export const Home = () => {
           </div>
         )}
 
-        {!products.length && !isLoading && (
+        {!products.length && !isLoading && !isFetchingNextPage && (
           <div className="h-screen w-full flex items-center justify-center text-white text-center p-12">
-             <div>
-                <h3 className="text-4xl font-black italic tracking-tighter mb-4">Feed Exhausted</h3>
-                <p className="text-white/40 uppercase text-[10px] font-black tracking-widest max-w-sm mx-auto">The Discovery Engine has reached the end of the available Impact feed. Re-index search catalog for more assets.</p>
-                <Link to="/products" className="mt-8 inline-block bg-white text-black px-12 py-4 rounded-3xl font-black text-xs uppercase tracking-widest">Go to Search</Link>
+             <div className="max-w-md">
+                <h3 className="text-4xl md:text-5xl font-black italic tracking-tighter mb-4 uppercase">Feed Exhausted</h3>
+                <p className="text-white/40 uppercase text-[10px] md:text-xs font-black tracking-[0.2em] mb-12 leading-relaxed">
+                  The discovery engine has reached the end of the available impact feed. Re-index search catalog for more assets.
+                </p>
+                <Link to="/products" className="inline-block bg-white text-black px-10 py-5 rounded-full font-black text-[10px] uppercase tracking-[0.2em] hover:bg-editorial-orange hover:text-white transition-all shadow-2xl">
+                  Go to Matrix Search
+                </Link>
              </div>
           </div>
         )}

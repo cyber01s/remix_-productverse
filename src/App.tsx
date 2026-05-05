@@ -40,17 +40,18 @@ export default function App() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-12 lg:gap-24">
               <div className="col-span-1 md:col-span-2">
                 <div className="flex items-center gap-2 mb-8 group cursor-default">
-                  <div className="bg-indigo-600 p-2 rounded-xl group-hover:rotate-12 transition-transform">
-                     <Zap size={24} className="fill-white" />
-                  </div>
-                  <span className="text-3xl font-black tracking-tighter uppercase italic">Product<span className="text-indigo-600">Verse</span>.</span>
+                  <span className="text-3xl font-black tracking-tighter uppercase italic">
+                    PV<span className="text-indigo-600">.</span>DISCOVER
+                  </span>
                 </div>
                 <p className="text-gray-400 max-w-md text-sm leading-relaxed mb-8">
                   Your ultimate guide to the galaxy of consumer products. 
                   We track, analyze, and discover products through an AI-powered lens.
                   Mobile-optimized search engine for the modern shopper.
                   <br /><br />
-                  <span className="text-indigo-400 font-bold uppercase tracking-widest text-[10px]">A newfortech.com Initiative</span>
+                  <a href="https://newfortech.com" target="_blank" rel="noopener noreferrer" className="text-indigo-400 font-bold uppercase tracking-widest text-[10px] hover:text-white transition-colors">
+                    A newfortech.com Initiative
+                  </a>
                 </p>
                 <div className="flex gap-4">
                   <a href="#" className="p-3 bg-white/5 rounded-2xl hover:bg-white/10 transition-colors"><Twitter size={18} /></a>
