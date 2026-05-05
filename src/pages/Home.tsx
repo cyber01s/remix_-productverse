@@ -310,7 +310,9 @@ export const Home = () => {
                 <h3 className="text-4xl md:text-5xl font-black italic tracking-tighter mb-4 uppercase text-rose-500">System Error</h3>
                 <p className="text-white/40 uppercase text-[10px] md:text-xs font-black tracking-[0.2em] mb-6 leading-relaxed">
                   {error instanceof Error && error.message.includes('Impact API credentials') 
-                    ? "Configuration Missing: Please ensure IMPACT_ACCOUNT_SID and IMPACT_AUTH_TOKEN are set in Vercel Environment Variables."
+                    ? "Configuration Missing: Please ensure IMPACT_ACCOUNT_SID and IMPACT_AUTH_TOKEN are set."
+                    : error instanceof Error && error.message.includes('The discovery engine')
+                    ? "The discovery engine encountered a timeout. This usually happens when the upstream API is slow. Try refreshing."
                     : "The discovery engine encountered a vector mismatch. Please re-synchronize your credentials or try again later."}
                 </p>
                 {error && (
