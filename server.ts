@@ -36,10 +36,10 @@ try {
   console.error("Failed to initialize Firebase Admin:", error);
 }
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
+const app = express();
+const PORT = 3000;
 
+async function startServer() {
   app.use(express.json());
 
   // API Routes
@@ -184,7 +184,7 @@ async function startServer() {
       const catalogs = catData.Catalogs || [];
       const allItems: any[] = [];
 
-      // 2. Fetch items from catalogs in parallel for performance
+      // 2. Fetch items from fewer catalogs in parallel to prevent Vercel timeouts (Free tier limit is usually ~10s)
       let searchTerm = (q as string) || "";
       if (category && category !== 'all') {
         searchTerm = searchTerm ? `${searchTerm} ${category}` : (category as string);
@@ -194,7 +194,7 @@ async function startServer() {
       const paginationQuery = `&PageSize=${pageSize}&PageItemStart=${pageItemStart}`;
 
       const catalogItems = await Promise.all(
-        catalogs.slice(0, 8).map(async (catalog: any) => {
+        catalogs.slice(0, 5).map(async (catalog: any) => {
           try {
             const itemRes = await fetch(`https://api.impact.com/Mediapartners/${IMPACT_ACCOUNT_SID}/Catalogs/${catalog.Id}/Items?${paginationQuery}${searchQuery}`, fetchOpts);
             if (itemRes.ok) {
@@ -306,9 +306,13 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+  if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  }
 }
 
 startServer();
+
+export default app;
