@@ -49,6 +49,18 @@
         "source": { "type": "string" },
         "timestamp": { "type": "string", "format": "date-time" }
       }
+    },
+    "SearchCache": {
+      "title": "Search Cache",
+      "description": "Cached search results to prevent API overuse.",
+      "type": "object",
+      "properties": {
+        "queryKey": { "type": "string" },
+        "results": { "type": "array", "items": { "type": "object" } },
+        "expiresAt": { "type": "number" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["queryKey", "results", "expiresAt", "createdAt"]
     }
   },
   "firestore": {
@@ -63,6 +75,10 @@
     "/clicks/{clickId}": {
       "schema": "Click",
       "description": "Affiliate clicks log"
+    },
+    "/search_cache/{cacheId}": {
+      "schema": "SearchCache",
+      "description": "Impact API search cache"
     }
   }
 }

@@ -2,9 +2,29 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
+import admin from "firebase-admin";
+import fs from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Initialize Firebase Admin
+let db: admin.firestore.Firestore | null = null;
+try {
+  const configPath = path.join(process.cwd(), "firebase-applet-config.json");
+  if (fs.existsSync(configPath)) {
+    const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+    if (admin.apps.length === 0) {
+      admin.initializeApp({
+        projectId: config.projectId,
+      });
+    }
+    db = admin.firestore(config.firestoreDatabaseId);
+    console.log("Firebase Admin initialized successfully.");
+  }
+} catch (error) {
+  console.error("Failed to initialize Firebase Admin:", error);
+}
 
 async function startServer() {
   const app = express();
@@ -20,14 +40,82 @@ async function startServer() {
   const IMPACT_ACCOUNT_SID = process.env.IMPACT_ACCOUNT_SID;
   const IMPACT_AUTH_TOKEN = process.env.IMPACT_AUTH_TOKEN;
 
-  let productCache: any[] = [];
-  let cacheTime = 0;
+  // Local fallback cache
+  let localCache: Record<string, { items: any[], expires: number }> = {};
+
+  const CACHE_TTL = 3600 * 24 * 1000; // 24 hours
+
+  async function getFromCache(key: string): Promise<any[] | null> {
+    try {
+      // 1. Check local memory first
+      if (localCache[key] && localCache[key].expires > Date.now()) {
+        return localCache[key].items;
+      }
+
+      // 2. Check Firestore
+      if (db) {
+        const doc = await db.collection("search_cache").doc(key).get();
+        if (doc.exists) {
+          const data = doc.data();
+          if (data && data.expiresAt > Date.now()) {
+            // Update local memory
+            localCache[key] = { items: data.results, expires: data.expiresAt };
+            return data.results;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Cache read error:", e);
+    }
+    return null;
+  }
+
+  async function setToCache(key: string, results: any[]) {
+    const expiresAt = Date.now() + CACHE_TTL;
+    const createdAt = Date.now();
+    
+    // Update local memory
+    localCache[key] = { items: results, expires: expiresAt };
+
+    // Update Firestore
+    if (db) {
+      try {
+        await db.collection("search_cache").doc(key).set({
+          queryKey: key,
+          results,
+          expiresAt,
+          createdAt
+        });
+
+        // Strategic cleanup: 1 in 20 writes triggers a cleanup of old entries
+        if (Math.random() < 0.05) {
+          const oldEntries = await db.collection("search_cache")
+            .where("expiresAt", "<", Date.now())
+            .limit(50)
+            .get();
+          
+          const batch = db.batch();
+          oldEntries.docs.forEach(doc => batch.delete(doc.ref));
+          await batch.commit();
+          console.log(`Cleaned up ${oldEntries.size} expired cache entries.`);
+        }
+      } catch (e) {
+        console.warn("Cache write error:", e);
+      }
+    }
+  }
 
   // Impact.com Product Proxy
   app.get("/api/products", async (req, res) => {
     try {
       const { q, category, page } = req.query;
       
+      const cacheKey = `search_${q || 'all'}_${category || 'all'}_${page || 1}`;
+      const cached = await getFromCache(cacheKey);
+      if (cached) {
+        return res.json({ Items: cached });
+      }
+
       if (!IMPACT_ACCOUNT_SID || !IMPACT_AUTH_TOKEN) {
         throw new Error("Missing Impact API credentials in environment variables.");
       }
@@ -41,11 +129,6 @@ async function startServer() {
       const pageSize = 20;
       const pageItemStart = (currentPage - 1) * pageSize + 1;
 
-      // Only use cache if no search query OR category OR page is provided
-      if (!q && (!category || category === 'all') && currentPage === 1 && productCache.length > 0 && Date.now() - cacheTime < 3600 * 1000) {
-        return res.json({ Items: productCache });
-      }
-
       // 1. Fetch available catalogs
       const catResponse = await fetch(`https://api.impact.com/Mediapartners/${IMPACT_ACCOUNT_SID}/Catalogs?PageSize=10`, fetchOpts);
       if (!catResponse.ok) {
@@ -57,7 +140,6 @@ async function startServer() {
       const allItems: any[] = [];
 
       // 2. Fetch items from catalogs
-      // Constructing search term from query and category
       let searchTerm = (q as string) || "";
       if (category && category !== 'all') {
         searchTerm = searchTerm ? `${searchTerm} ${category}` : (category as string);
@@ -66,7 +148,7 @@ async function startServer() {
       const searchQuery = searchTerm ? `&SearchTerm=${encodeURIComponent(searchTerm)}` : "";
       const paginationQuery = `&PageSize=${pageSize}&PageItemStart=${pageItemStart}`;
 
-      for (const catalog of catalogs.slice(0, 4)) {
+      for (const catalog of catalogs.slice(0, 8)) {
         try {
           const itemRes = await fetch(`https://api.impact.com/Mediapartners/${IMPACT_ACCOUNT_SID}/Catalogs/${catalog.Id}/Items?${paginationQuery}${searchQuery}`, fetchOpts);
           if (itemRes.ok) {
@@ -80,21 +162,17 @@ async function startServer() {
         }
       }
 
-      // Filter out products with no images
       const validItems = allItems.filter(item => item.ImageUrl);
 
-      // Unique items by Id
       const seen = new Set();
       const uniqueItems = validItems.filter(item => {
-        const duplicate = seen.has(item.Id);
-        seen.add(item.Id);
+        const id = item.Id || item.id;
+        const duplicate = seen.has(id);
+        seen.add(id);
         return !duplicate;
       });
 
-      if (!q) {
-        productCache = uniqueItems;
-        cacheTime = Date.now();
-      }
+      await setToCache(cacheKey, uniqueItems);
 
       return res.json({ Items: uniqueItems });
     } catch (e) {
@@ -107,14 +185,12 @@ async function startServer() {
     try {
       const { id } = req.params;
       
-      // 1. Check cache first
-      if (productCache.length > 0) {
-        const product = productCache.find(p => p.Id === id);
-        if (product) return res.json(product);
+      const cacheKey = `product_${id}`;
+      const cached = await getFromCache(cacheKey);
+      if (cached && cached.length > 0) {
+        return res.json(cached[0]);
       }
 
-      // 2. If not in cache, we need to find which catalog it belongs to, or search for it
-      // Since we don't know the catalog, we search for the specific ID as a SearchTerm
       if (!IMPACT_ACCOUNT_SID || !IMPACT_AUTH_TOKEN) {
         throw new Error("Missing Impact API credentials");
       }
@@ -132,8 +208,11 @@ async function startServer() {
         const itemRes = await fetch(`https://api.impact.com/Mediapartners/${IMPACT_ACCOUNT_SID}/Catalogs/${catalog.Id}/Items?SearchTerm=${encodeURIComponent(id)}`, fetchOpts);
         if (itemRes.ok) {
           const iData = await itemRes.json();
-          const item = (iData.Items || []).find((p: any) => p.Id === id);
-          if (item) return res.json(item);
+          const item = (iData.Items || []).find((p: any) => (p.Id || p.id) === id);
+          if (item) {
+            await setToCache(cacheKey, [item]);
+            return res.json(item);
+          }
         }
       }
 
